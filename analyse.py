@@ -7,7 +7,7 @@ import requests
 from matplotlib.offsetbox import (OffsetImage, AnnotationBbox)
 
 
-def offset_image(coord: int, name: str, ax: plt.Axes, image: list):
+def offset_image(coord: int, name: str, ax: plt.Axes, image: list) -> None:
     img = image
     im = OffsetImage(img, zoom=0.72)
     im.image.axes = ax
@@ -16,7 +16,7 @@ def offset_image(coord: int, name: str, ax: plt.Axes, image: list):
     ax.add_artist(ab)
 
 
-def plot(player_list: list[tuple], values: list, name: str, title: str, xlabel: str, ylabel: str):
+def plot(player_list: list[tuple], values: list, name: str, title: str, xlabel: str, ylabel: str) -> None:
     players_names = [x[0] for x in player_list]
     skins = []
     for x in player_list:
@@ -68,6 +68,7 @@ def plot(player_list: list[tuple], values: list, name: str, title: str, xlabel: 
     ax.set_title(title)
 
     plt.savefig(name)
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     players_cpy.sort(key=lambda x: x[3])  # Sort by n_of_adv
     players_cpy.reverse()  # Make sorting decreasing
     counts = [x[3] for x in players_cpy]
-    plot(players_cpy, counts, 'advancements.png', 'Advancements', 'Players', 'Advancement count')
+    plot(players_cpy, counts, 'out/advancements.png', 'Advancements', 'Players', 'Advancement count')
 
     # wanted_stat = 'minecraft:play_time'
     for stat in stat_fields:
@@ -111,4 +112,21 @@ if __name__ == "__main__":
         players_cpy.sort(key=lambda x: x[2][stat_fields.index(stat)])  # Sort by wanted stat
         players_cpy.reverse()  # Make sorting decreasing
         vals = [x[2][stat_fields.index(stat)] for x in players_cpy]
-        plot(players_cpy, vals, f'{stat_name}.png', stat_name, 'Players', 'Value')
+        plot(players_cpy, vals, f'out/{stat_name}.png', stat_name, 'Players', 'Value')
+
+    # get top10 players
+
+    players_cpy = [x for x in players]
+    players_cpy.sort(key=lambda x: x[3])  # Sort by n_of_adv
+    players_cpy.reverse()  # Make sorting decreasing
+    players_cpy = players_cpy[:10]
+    counts = [x[3] for x in players_cpy]
+    plot(players_cpy, counts, 'out/top10/advancements_top10.png', 'Advancements', 'Players', 'Advancement count')
+    # wanted_stat = 'minecraft:play_time'
+    for stat in stat_fields:
+        stat_name = stat.split(':')[1]
+        players_cpy.sort(key=lambda x: x[2][stat_fields.index(stat)])  # Sort by wanted stat
+        players_cpy.reverse()  # Make sorting decreasing
+        players_cpy = players_cpy[:10]
+        vals = [x[2][stat_fields.index(stat)] for x in players_cpy]
+        plot(players_cpy, vals, f'out/top10/{stat_name}_top10.png', stat_name, 'Players', 'Value')
