@@ -1,12 +1,12 @@
 import json
-import re
-
+from const import *
 from nbt import nbt
 import requests
 from base64 import b64decode
 from json import loads
 import os
 import csv
+import logging
 
 
 class Player:
@@ -26,6 +26,7 @@ class Player:
         try:
             self.__data = nbt.NBTFile(self.file, 'rb')
         except nbt.MalformedFileError:
+            logging.debug(f"Malformed NBT file for {self.uuid}, no data will be saved")
             self.__data = None  # Failed to read NBT file
 
     def get_player_base_info(self) -> bool:
@@ -41,7 +42,7 @@ class Player:
         try:
             self.cape = textures['CAPE']['url']
         except KeyError:
-            pass
+            logging.debug(f"Player {self.name} has no cape, skipping")
         return True
 
     def read_containers(self):
@@ -71,7 +72,7 @@ class PlayerStats(Player):
                 self.__data = json.load(j)
         except FileNotFoundError:
             self.__data = None  # No stats found for UUID
-            print(f'No stats for {self.name}, uuid: {self.uuid}')
+            logging.debug(f'No stats for {self.name}, uuid: {self.uuid}')
 
     def get_stats(self):
         if self.__data:
@@ -88,11 +89,12 @@ class PlayerAdvancements(Player):
     def read_json(self):
         head, tail = os.path.split(self.file)
         try:
-            with open(os.path.join(head.replace('playerdata', 'advancements'), tail.replace('.dat', '.json')), 'r') as j:
+            with open(os.path.join(head.replace('playerdata', 'advancements'), tail.replace('.dat', '.json')),
+                      'r') as j:
                 self.__data = json.load(j)
         except FileNotFoundError:
             self.__data = None  # Not found, no advancements probably
-            print(f'No advancements for {self.name}, uuid: {self.uuid}')
+            logging.debug(f'No advancements for {self.name}, uuid: {self.uuid}')
 
     def get_advancements(self):
         if self.__data:
@@ -106,9 +108,8 @@ class PlayerAdvancements(Player):
 
 
 if __name__ == "__main__":
-    PLAYERDATA_DIR = 'world/playerdata/'
     world_name = PLAYERDATA_DIR.split('/')[0] or PLAYERDATA_DIR.split('\\')[0]
-    print(f'Output to {world_name}_playerinfo.csv')
+    logging.info(f'Output to {world_name}_playerinfo.csv')
 
     # ChatGPT actually helped on this one, (the well documented portion) after 20min of back and forth
     files = [f for f in os.listdir(PLAYERDATA_DIR) if f.endswith('.dat') and not f.endswith('_old.dat')]
@@ -158,20 +159,20 @@ if __name__ == "__main__":
     with open(f'{world_name}_playerinfo.csv', 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         # Write first row (col names)
-        csvwriter.writerow(['uuid', 'name', 'skin', 'cape', 'inventory', 'enderchest', 'stats', 'completed_advancements'])
+        csvwriter.writerow(
+            ['uuid', 'name', 'skin', 'cape', 'inventory', 'enderchest', 'stats', 'completed_advancements'])
         for file in players:
-            if file.endswith('.dat'):  # Possible backups in form of .dat_old, dismiss them
-                uuid: str = file.replace('.dat', '')
-                adv: PlayerAdvancements = PlayerAdvancements(uuid, PLAYERDATA_DIR + file)
-                success = adv.get_player_base_info()
-                if not success:  # Do not write invalid uuids
-                    print(f"Reading for {adv.name} failed, problematic UUID: {file.replace('.dat', '')}")
-                    continue
-                print(f'Reading for {adv.name}')
-                adv.read_containers()
-                adv.get_advancements()
-                st: PlayerStats = PlayerStats(uuid, PLAYERDATA_DIR + file)
-                st.get_stats()
+            uuid: str = file.replace('.dat', '')
+            adv: PlayerAdvancements = PlayerAdvancements(uuid, PLAYERDATA_DIR + file)
+            success: bool = adv.get_player_base_info()
+            if not success:  # Do not write invalid uuids
+                logging.debug(f"Reading for {adv.name} failed, problematic UUID: {file.replace('.dat', '')}")
+                continue
+            logging.info(f'Reading info for {adv.name}')
+            adv.read_containers()
+            adv.get_advancements()
+            st: PlayerStats = PlayerStats(uuid, PLAYERDATA_DIR + file)
+            st.get_stats()
 
-                csvwriter.writerow([adv.uuid, adv.name, adv.skin, adv.cape,
-                                    adv.inventory, adv.enderchest, st.stats, adv.completed])
+            csvwriter.writerow([adv.uuid, adv.name, adv.skin, adv.cape,
+                                adv.inventory, adv.enderchest, st.stats, adv.completed])

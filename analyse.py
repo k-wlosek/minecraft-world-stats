@@ -1,6 +1,7 @@
 import csv
 import sys
 import json
+from const import *
 import matplotlib.pyplot as plt
 import matplotlib.image as image
 import requests
@@ -88,9 +89,8 @@ if __name__ == "__main__":
     stat_fields = ['minecraft:play_time', 'minecraft:fish_caught', 'minecraft:sprint_one_cm', 'minecraft:walk_one_cm',
                    'minecraft:crouch_one_cm', 'minecraft:sneak_time', 'minecraft:swim_one_cm',
                    'minecraft:walk_under_water_one_cm', 'minecraft:walk_on_water_one_cm', 'minecraft:aviate_one_cm']
-    CSV_FILE = 'world_playerinfo.csv'
-    # Last arg of plot() is the size. Used below whenever you see plot are values for a large player base
-    # For png files we're saving, this is tuple is (width x 1000px, height x 1000px)
+    world_name = PLAYERDATA_DIR.split('/')[0] or PLAYERDATA_DIR.split('\\')[0]
+    CSV_FILE = f'{world_name}_playerinfo.csv'
 
     players = []
     with open(CSV_FILE, newline='') as csvfile:
@@ -118,6 +118,8 @@ if __name__ == "__main__":
                 players.append((name, uuid, stat_values, n_of_adv))
     print('Finished loading all playerdata')
 
+    width = int(1.25*i)
+
     # Sort by x
     players_cpy = [x for x in players]
     players_cpy.sort(key=lambda x: x[3])  # Sort by n_of_adv
@@ -125,7 +127,7 @@ if __name__ == "__main__":
     counts = [x[3] for x in players_cpy]
 
     print('Plotting all advancement')
-    plot(players_cpy, counts, 'out/advancements.png', 'Advancements', 'Players', 'Advancement count', (450, 10))
+    plot(players_cpy, counts, 'out/advancements.png', 'Advancements', 'Players', 'Advancement count', (width, 10))
 
     # wanted_stat = 'minecraft:play_time'
     for stat in stat_fields:
@@ -134,7 +136,7 @@ if __name__ == "__main__":
         players_cpy.sort(key=lambda x: x[2][stat_fields.index(stat)])  # Sort by wanted stat
         players_cpy.reverse()  # Make sorting decreasing
         vals = [x[2][stat_fields.index(stat)] for x in players_cpy]
-        plot(players_cpy, vals, f'out/{stat_name}.png', stat_name, 'Players', 'Value', (450, 10))
+        plot(players_cpy, vals, f'out/{stat_name}.png', stat_name, 'Players', 'Value', (width, 10))
 
     # get top10 players
 
